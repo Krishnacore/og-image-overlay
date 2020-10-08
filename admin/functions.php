@@ -75,12 +75,30 @@ function generate_og_image( $post_id ) {
         $overlay_height = $overlay_image_meta['2'];
 
         $ogImage  = imagecreatefromjpeg( get_attached_file( $featured_image ) );
+        
+        // scale and crop the image so that the plugin works correctly with images of any size
+        $ogImage = imagescale( $ogImage, 1200 );
+        $ogImage = imagecrop( $ogImage, ['x' => 0, 'y' => 0, 'width' => 1200, 'height' => 630] );
+        
         if ( $overlay_type == 'image/jpeg' ) {
             $addition = imagecreatefromjpeg( get_attached_file( $overlay_image ) );
         } elseif ( $overlay_type == 'image/png' ) {
             $addition = imagecreatefrompng( get_attached_file( $overlay_image ) );
         }
         imagecopy( $ogImage, $addition, $overlay_x, $overlay_y, 0, 0, $overlay_width, $overlay_height );
+        
+        // adds post title and blog title to image
+        $font_path = plugin_dir_path(__DIR__) . 'fonts/Montserrat-Bold.ttf';
+        $name = get_bloginfo( 'name' );
+        $title = get_the_title( $post_id );
+        $title = wordwrap($text, 70, "\n");
+        $box = imagettfbbox(33, 0, $font_path, $title);
+        $white = imagecolorallocate($ogImage, 255, 255, 255);
+        $y = (imagesy($ogImage) / 2) - (($box[3] - $box[1]) / 2);
+        $y = ((imagesy($ogImage) - ($box[1] - $box[6]))/2);
+        imagettftext($ogImage, 33, 0, 59, $y, $white, $font_path, $title);
+        imagettftext($ogImage, 19, 0, 59, 78, $white, $font_black, $name);
+        
         header('Content-Type: image/png');
         imagepng( $ogImage );
         imagedestroy($ogImage);
